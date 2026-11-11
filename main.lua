@@ -137,7 +137,7 @@ function M:entry(job)
 	scrolled_columns = math.max(0, scrolled_columns + scroll_delta)
 	set_opts("scrolled_columns", scrolled_columns)
 
-	ya.emit("seek", { "lateral scroll" })
+	ya.emit("seek", { 0 })
 end
 
 -- Setup from init.lua: require("duckdb"):setup({ mode = "standard"/"summarized" })
@@ -784,24 +784,14 @@ function M:peek(job)
 	render_output(output, job)
 end
 
--- Seek, also triggers mode change if skip negative.
+-- Seek within the current preview mode.
 function M:seek(job)
 	local OFFSET_BASE = 50
 	local current_skip = math.max(0, cx.active.preview.skip - OFFSET_BASE)
 	local units = job.units or 0
-	local new_skip = current_skip + units
+	local new_skip = math.max(0, current_skip + units)
 
-	if new_skip < 0 then
-		-- Toggle preview mode
-		local mode = get_opts("mode")
-		local new_mode = (mode == "summarized") and "standard" or "summarized"
-		set_opts("mode", new_mode)
-		set_opts("mode_changed", true)
-		-- Trigger re-peek
-		ya.emit("peek", { OFFSET_BASE, only_if = job.file.url })
-	else
-		ya.emit("peek", { new_skip + OFFSET_BASE, only_if = job.file.url })
-	end
+	ya.emit("peek", { new_skip + OFFSET_BASE, only_if = job.file.url })
 end
 
 return M
