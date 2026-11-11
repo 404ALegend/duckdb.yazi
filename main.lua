@@ -169,7 +169,7 @@ local function generate_preload_query(job, mode, file_type, limit)
 	local data_source_string = generate_data_source_string(job.file.url, file_type)
 	local limit_string = ""
 	if limit then
-		limit_string = "LIMIT " .. tostring(limit)
+		limit_string = " LIMIT " .. tostring(limit)
 	end
 	if mode == "standard" then
 		return "FROM " .. data_source_string .. limit_string
