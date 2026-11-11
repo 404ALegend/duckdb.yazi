@@ -276,7 +276,7 @@ local function run_query(job, query, target, file_type)
 	local width = math.max((job.area and job.area.w * 3 or 80), 80)
 	local height = math.max((job.area and job.area.h or 25), 25)
 
-	local args = {}
+	local args = { "-no-agent" }
 
 	if file_type == "duckdb" then
 		table.insert(args, "-readonly")
@@ -305,8 +305,8 @@ local function run_query(job, query, target, file_type)
 	end
 
 	local output, err = child:wait_with_output()
-	if err or not output.status.success then
-		ya.err("DuckDB error: " .. (err or output.stderr or "[unknown error]"))
+	if err or not output or not output.status or not output.status.success then
+		ya.err("DuckDB error: " .. (err or (output and output.stderr) or "[unknown error]"))
 		return nil
 	end
 
@@ -672,8 +672,6 @@ local function create_cache(job, mode, file_type, limit)
 	local base_query = generate_preload_query(job, mode, file_type, limit)
 	local query = string.format("COPY (%s) TO '%s' (FORMAT 'parquet');", base_query, target)
 	local output = run_query(job, query, nil, file_type)
-	ya.dbg("stdout: " .. tostring(output.stdout))
-	ya.dbg("stderr: " .. tostring(output.stderr))
 
 	if not output or (output.stderr and output.stderr ~= "") then
 		ya.err(
@@ -758,6 +756,9 @@ function M:peek(job)
 	local query = generate_peek_query(args.target, job, args.limit, args.offset, args.file_type, args.cache_str)
 	ya.dbg("query: " .. tostring(query))
 	local output = run_query(job, query, args.target, args.file_type)
+	if not output then
+		return
+	end
 	ya.dbg("stdout: " .. tostring(output.stdout))
 	ya.dbg("stderr: " .. tostring(output.stderr))
 	if not output_is_valid(output, args.mode, job) then
